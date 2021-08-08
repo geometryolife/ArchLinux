@@ -47,10 +47,155 @@ vim /etc/fstab
 
 ## 安装前的准备
 
-### 获取安装镜像文件
+### 1. 获取安装镜像文件
 
 访问 [下载](https://archlinux.org/download/) 页面，并根据需要的引导方式，获
 取 ISO 文件或 netboot 镜像以及相应的 [GnuPG](https://wiki.archlinux.org/title/GnuPG) 签名。
+
+### 2. 验证签名(非 [archlinux.org](https://archlinux.org/download/) 站点下载镜像应尽量验证)
+建议使用前先验证所下载文件的签名，特别是从 *HTTP* 镜像源下载的文件，因为 HTTP 连
+接一般来说容易遭到拦截而提供恶意镜像。在一台已经安装[GnuPG](https://wiki.archlinux.org/title/GnuPG) 的
+系统上，可通过下载 *PGP* 签名到 ISO 文件所在的路径，然后用以下方式 [验证](https://wiki.archlinux.org/title/GnuPG#Verify_a_signature):
+```Linux
+gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig
+
+# 在一台已经安装 Arch Linux 的计算机上可以通过以下方式验证:
+pacman-key -v archlinux-version-x86_64.iso.sig
+```
+
+### 3. 准备安装镜像(制作启动盘)
+安装映像可以通过 [USB 闪存盘](https://wiki.archlinux.org/title/USB_flash_installation_medium)、
+[光盘](https://wiki.archlinux.org/title/Optical_disc_drive#Burning)和带
+[PXE](https://wiki.archlinux.org/title/PXE) 的网络提供给目标机器：请按照合适的文章，使用所选映像为自己准备安装介质。
+
+- 使用 [balenaEtcher](https://www.balena.io/etcher/) 制作 USB 启动盘
+
+### 4. 启动实时(Live)环境
+**注意:** Arch Linux 安装镜像不支持安全启动（Secure Boot）。要引导安装媒介，需
+要[禁用安全启动](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface/Secure_Boot#Disabling_Secure_Boot)。
+如果需要，可在完成安装后重新配置 [安全启动](https://wiki.archlinux.org/title/Secure_Boot)。
+
+1. 选择从带有 Arch 安装文件的媒介启动，通常是要在 计算机开机自检 时按下某个按键，一般在启动画面会有提示。
+具体情况请参考主板说明书。
+2. 当引导加载程序菜单出现时，选择 Arch Linux install medium 并按 Enter 进入安装环境。
+**提示:** 安装映像使用 systemd-boot 在 UEFI 模式下引导，使用 syslinux 在 BIOS 模式下引导。请参阅 README.bootparams 获取 引导参数 列表。
+3. 您将会以 root 身份登录进一个虚拟控制台，默认的 Shell 是 Zsh。
+4. 如果想一边安装，一边使用 Lynx 查看本指南，可以使用 Alt+箭头 快捷键切换不同的控制台。
+要编辑配置文件，可以使用 mcedit(1)、nano 和 vim。请参阅 packages.x86_64 获取安装介质中包含的软件包列表。
+
+### 5. 设置 Live 环境选项
+#### 屏幕显示(分辨率调节)
+```Linux
+# 根据 live 界面的提示，按下相应的按键编辑选项
+nomodeset video=800x450
+```
+
+#### 控制台字体
+控制台字体 位于 /usr/share/kbd/consolefonts/ 目录中，设置方式请参考 setfont(8)。
+```Linux
+setfont /usr/share/kbd/consolefonts/LatGrkCyr-12x22.psfu.gz
+```
+
+#### 键盘布局
+控制台键盘布局默认为 us（美式键盘映射）。列出所有可用的键盘布局，可以使用：
+
+```Linux
+ls /usr/share/kbd/keymaps/**/*.map.gz
+```
+
+```Linux
+更改键盘布局配置文件
+vim keys.conf
+内容
+keycode 1 = Caps_Lock
+keycode 58 = Escape
+
+加载配置
+loadkeys keys.conf
+
+vim 配置文件
+syntax on
+noremap H 0
+noremap J 5j
+noremap K 5k
+noremap L $
+noremap ; :
+noremap S :w<CR>
+noremap Q :q<CR>
+```
+
+如果您想要更改键盘布局，可以将一致的文件名添加进 loadkeys(1)，但请省略路径和扩展名。
+比如，要添加 German 键盘布局：
+```Linux
+loadkeys de-latin1
+loadkeys colemak
+```
+
+### 6. 验证启动模式
+要验证启动模式，请用下列命令列出 efivars 目录：
+```Linux
+ls /sys/firmware/efi/efivars
+```
+
+如果命令没有错误地显示了目录，则系统以 UEFI 模式启动。 如果目录不存在，系统可能
+以 BIOS 模式 (或 CSM 模式) 启动。如果系统未以您想要的模式引导启动，请参考您的主板手册。
+
+### 连接到因特网
+
+
+
+```Linux
+ip link
+ip link set wlan0(网卡名) up
+ip link
+
+# 扫描存在的 WiFi
+iwlist wlan0 scan
+iwlist wlan0 scan | grep ESSID
+iwlist wlan0 scan | grep WiFi-name
+
+wpa_passphrase 网络 密码 > 文件名
+wpa_supplicant -c internet.conf(配置文件名) -i wlan0 &
+ping 无法连通，因为没有分配 IP 地址
+动态分配 IP 地址
+dhcpcd &
+此时可以 ping 通了
+
+更正系统时间
+timedatectl set-ntp true
+```
+
+```Linux
+mkfs.fat -F32 /dev/sda1
+mkfs.ext4 /dev/sda2
+mkswap /dev/sda3
+swapon /dev/sad3
+```
+
+滚动更新
+
+修改 pacman 的下载源
+```Linux
+vim /etc/pacman.conf
+
+去掉 Color 批注
+
+找到 [community]
+Include = /etc/pacman.d/mirrorlist
+进入文件
+
+录制宏
+/^\n
+/China
+Shift-v 选中， d
+gg
+/^\n
+p
+结束录制宏
+```
+
+使用宏
+
 
 ## 操作流程
 
@@ -100,7 +245,7 @@ lsblk
 ```
 5. 使用 pacstrap 脚本给系统安装一些基本工具
 ```Linux
-pacstrap /mnt/ base base-devel vim 
+pacstrap /mnt base base-devel vim linux linux-firmware
 ```
 
 6. 生成文件系统
@@ -115,33 +260,19 @@ vim /mnt/etc/fstab
 
 7. 通过 `arch-chroot` 命令切换到安装的系统。
 ```Linux
+arch-chroot /mnt
 vim /etc/fstab
 ```
 
-8. 在新系统上安装一些软件
+8. 时区(设置地区时间)
 ```Linux
-# 网络管理工具
-pacman -S networkmanager
+ls /usr/share/zoneinfo
+ls /etc/localtime
 
-# 启动引导程序
-pacman -S grub
-```
+ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-9. 开启网络管理工具 networkmanager
-```Linux
-systemctl enable NetworkManager
-```
-
-10. 给设备安装合适的引导程序以引导系统
-```Linux
-grub-install --target=i386-pc /dev/sdb
-
-grub-mkconfig -o /boot/grub/grub.cfg
-```
-
-11. 修改 root 用户密码
-```Linux
-passwd
+同步系统时间
+hwclock --systohc
 ```
 
 12. 本地化设置
@@ -159,18 +290,54 @@ vim /etc/locale.conf
 LANG=en-US.UTF-8
 ```
 
-13. 设置地区时间
-```Linux
-ls /usr/share/zoneinfo
-ls /etc/localtime
-
-ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-```
-
-14. 设置主机名
+13. 设置主机名
 ```Linux
 /etc/hostname
+
+# hosts 配置
+127.0.0.1    localhost
+::1          localhost
+127.0.1.1    mx.localdomain  mx
 ```
+
+9. 在新系统上安装一些软件
+```Linux
+# 网络管理工具
+pacman -S networkmanager
+
+# 启动引导程序
+pacman -S grub
+
+pacman -S neovim zsh wpa_supplicant dhcpcd
+```
+
+10. 开启网络管理工具 networkmanager
+```Linux
+systemctl enable NetworkManager
+```
+
+10. 给设备安装合适的引导程序以引导系统
+在启用多系统的电脑时，需要一个引导程序选择启动哪一个系统
+```Linux
+pacman -S grub efibootmgr intel-ucode(为电脑的CPU更新一些驱动) os-prober(寻找其他系统)
+
+uname -m
+
+mbr 分区 BIOS
+grub-install --target=i386-pc /dev/sdb(整个磁盘)
+
+grub-mkconfig -o /boot/grub/grub.cfg
+
+uefi 
+mkdir /boot/grub
+grub-install --target=x86_64-efi --efi-directory=/boot
+```
+
+11. 修改 root 用户密码
+```Linux
+passwd
+```
+
 
 15. 卸载
 ```Linux
