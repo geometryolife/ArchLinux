@@ -357,3 +357,31 @@ umount -R /mnt
 pgrep ffmpeg
 
 
+### 改键位
+
+直接修改 scancode -> keycode 映射表
+
+- [Linux通用键位修改（上）-理论基础](https://b23.tv/mI8vzPD)
+- [Linux通用键位修改（中）-实际操作](https://b23.tv/b5EqUFc)
+
+- 工具
+  - evtest（查看某个按键的具体 scancode）
+  - udevadm（更新自定义配置，查看配置内容，集成在 systemd 中）
+  - evemu 提供的工具 evemu-describe，查看设备信息
+
+- 文件
+  - `/etc/udev/hwdb.d/` 用户自定义硬件数据库存放位置
+  - `/usr/lib/udev/hwdb.d/` 默认的硬件数据库位置。
+
+```
+evdev:atkbd:dmi:*
+ KEYBOARD_KEY_3a=leftctrl    # bind leftctrl to capslock
+ KEYBOARD_KEY_1d=capslock    # bind capslock to leftctrl
+```
+
+第一条命令是重新编译二进制的数据库内容，第二条命令表示立刻重新触发所有输入设备，让更改立刻生效：
+
+```shell
+udevadm hwdb --update
+udevadm trigger
+```
