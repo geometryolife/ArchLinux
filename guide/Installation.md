@@ -20,7 +20,34 @@ ls /sys/firmware/efi/efivars
 
 `ping` 检查网络是否能够正常上网
 
-`wifi-menu` WiFi 模块
+~`wifi-menu` WiFi 模块~
+
+`iwd` 包提供无线网络连接的相关工具，`iwctl` 是其客户端程序。
+
+也可以使用 `networkmanager` 的 `nmtui`
+
+```shell
+# 进入 iwd
+$ iwctl
+
+# 列出 Wi-Fi 设备（无线网卡）
+[idw]# device list
+
+# 使用 station <DEVICE> scan 来扫描网络，以 wlan0 设备为例
+[idw]# station wlan0 scan
+
+# 列出可用网络
+[idw]# station wlan0 get-networks
+
+# 连接网络
+[idw]# station wlan0 connect SSID
+```
+
+更新 Pacman 镜像源列表
+
+```shell
+reflector --country China --age 24 --sort rate --protocol https --save /etc/pacman.d/mirrorlist
+```
 
 ```Linux
 timedatectl set-ntp true
@@ -271,6 +298,8 @@ ls /etc/localtime
 
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
+或 timedatectl set-timezone Asia/Shanghai
+
 同步系统时间
 hwclock --systohc
 ```
@@ -333,7 +362,25 @@ mkdir /boot/grub
 grub-install --target=x86_64-efi --efi-directory=/boot
 ```
 
-11. 修改 root 用户密码
+11. 修改 Grub 配置
+
+```shell
+$ vi /etc/default/grub
+
+# 不显示 GRUB 页面
+# GRUB_TIMEOUT=5 -> 0
+
+# 删除 quiet 显示登陆日志
+# GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3"
+```
+
+更新后需要使用 `grub-mkconfig` 重新生成配置
+
+```shell
+# grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+12. 修改 root 用户密码
 ```Linux
 passwd
 ```
@@ -344,6 +391,114 @@ passwd
 umount -R /mnt
 ```
 
+
+
+### 修改配置文件
+
+```shell
+$ cd /etc/skel
+
+# 一些 shell 的配置文件
+
+export EDITOR=vim
+
+# 让 grep 输出有颜色
+alias grep='grep --color=auto'
+alias egrep='egrep --color=auto' => -e 选项
+alias fgrep='fgrep --color=auto' => -F 选项
+
+# 文件与文件夹也有颜色
+# 如果每个用户的主目录下没有 .dircolors 则运行下面的命令将 dircolors 打印到 ~/.dircolors
+[ ! -e ~/.dircolors ] && eval $(dircolors -p > ~/.dircolors)
+# 若 /bin/dircolors 存在，则将其预设应用到 ~/.dircolors
+[ -e /bin/dircolors ] && eval $(dircolors -b ~/.dircolors)
+```
+
+保留原文件属性的前提下复制文件，到 root 主目录 `cp -a . ~`
+
+### 安装字体
+
+只装文泉驿相关的也基本可以了
+
+```shell
+# Xorg 经常使用到的字体
+# 英文
+$ sudo pacman -S ttf-dejavu ttf-droid ttf-hack ttf-font-awesome otf-font-awesome ttf-lato ttf-liberation ttf-linux-libertine ttf-opensans ttf-roboto ttf-ubuntu-font-family
+# 中文
+$ sudo pacman -S ttf-hannom noto-fonts noto-fonts-extra noto-fonts-emoji noto-fonts-cjk adobe-source-code-pro-fonts adobe-source-sans-fonts adobe-source-serif-fonts adobe-source-han-sans-cn-fonts adobe-source-han-sans-hk-fonts adobe-source-han-sans-tw-fonts adobe-source-han-serif-cn-fonts wqy-zenhei wqy-microhei
+```
+
+### 文字渲染
+
+可选
+
+```shell
+# 启用 freetype2 渲染引擎，渲染出媲美 MacOS 的字体效果
+$ vim /etc/profile.d/freetype2.sh
+```
+
+### 显卡驱动
+
+核显在 CPU 中，集显在主板上
+
+AMD
+
+```shell
+# 2D
+$ sudo pacman -S xf86-video-amdgpu xf86-video-ati
+# 3D
+$ sudo pacman -S mesa vulkan-radeon
+```
+
+Intel
+
+```shell
+$ sudo pacman -S xf86-video-intel vulkan-intel mesa
+```
+
+NVIDIA
+
+```shell
+$ sudo pacman -S nvidia nvidia-settings nvidia-utils
+```
+
+### 桌面环境
+
+```shell
+$ sudo pacman -S gnome gnome-extra gdm
+
+# 设置登录管理器开机自启
+$ systemctl enable gdm.service
+```
+
+### 声音
+
+Alsa 是 OSS 的继任，Arch 自带，但需要安装一些配置工具，以及代理工具、组件、打印机
+
+```shell
+pacman -S alsa-utils pulseaudio pulseaudio-bluetooth cups
+```
+
+清空安装软件时，留下的缓存、源
+
+```shell
+pacman -Scc
+```
+
+### AUR Helpers
+
+```shell
+git clone https://aur.archlinux.org/paru.git
+
+cd paru
+# makepkg 配置文件
+sudo vim /etc/makepkg.conf
+# 修改
+MAKEFLAGS="-j$(nproc)"
+
+# paru 安装成功后，修改配置，让搜索结果从下往上
+BottomUp
+```
 
 
 
