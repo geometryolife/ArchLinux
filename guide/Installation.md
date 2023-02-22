@@ -500,8 +500,21 @@ MAKEFLAGS="-j$(nproc)"
 BottomUp
 ```
 
+### 输入法
 
+```shell
+sudo pacman -S fcitx5-im fcitx5-chinese-addons fcitx5-material-color
 
+# 主题
+sudo pacman -S fcitx5-nord
+# paru fcitx5 ...
+```
+
+字库安装：云字库 & 离线字库
+
+```shell
+sudo pacman -S fcitx5-pinyin-moegirl fcitx5-pinyin-zhwiki
+```
 
 
 
