@@ -133,6 +133,11 @@ ls /usr/share/kbd/keymaps/**/*.map.gz
 ```Linux
 更改键盘布局配置文件
 vim keys.conf
+
+# 交换左 CTRL 和 CapsLock
+keycode 58 = Control
+keycode 29 = Caps_Lock
+
 内容
 keycode 1 = Caps_Lock
 keycode 58 = Escape
@@ -550,6 +555,7 @@ evdev:atkbd:dmi:*
 第一条命令是重新编译二进制的数据库内容，第二条命令表示立刻重新触发所有输入设备，让更改立刻生效：
 
 ```shell
-udevadm hwdb --update
+# udevadm hwdb --update (已废弃)
+systemd-hwdb update
 udevadm trigger
 ```
